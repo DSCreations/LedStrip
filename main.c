@@ -62,13 +62,11 @@ void setup()
     }
 }
 
+// Given a red, green, blue, and white color value, set the pixels at led n to the specified colors
 void setPixelRGBWColor(uint16_t n, uint8_t red, uint8_t green, uint8_t blue, uint8_t white) {
-    uint16_t pixelsId;
-    uint8_t *p;
-
     if(n < ledCount) {
-        pixelsId = n * NUM_OF_COLORS;
-        p = &pixels[pixelsId];
+        uint16_t pixelsId = n * NUM_OF_COLORS;
+        uint8_t *p = &pixels[pixelsId];
 
         p[WHITE_LED_OFFSET] = white;
         p[BLUE_LED_OFFSET] = blue;
@@ -77,19 +75,18 @@ void setPixelRGBWColor(uint16_t n, uint8_t red, uint8_t green, uint8_t blue, uin
     }
 }
 
-// Given a currentColor in RGBW order, set the pixels at led n
-void setPixelColor(uint16_t n, uint32_t currentColor) {
-    uint16_t pixelsId;
-    uint8_t *p, white, blue, green, red;
-
+// Given a RGBW aColor, set the pixels at led n to the specified colors
+void setPixelColor(uint16_t n, uint32_t aColor) {
     if(n < ledCount) {
-       pixelsId = n * NUM_OF_COLORS;
-       p = &pixels[pixelsId];
+       uint8_t white, blue, green, red;
 
-       white = (uint8_t) currentColor;
-       blue = (uint8_t) currentColor >> 8;
-       green = (uint8_t) currentColor >> 16;
-       red = (uint8_t) currentColor >> 24;
+       uint16_t pixelsId = n * NUM_OF_COLORS;
+       uint8_t *p = &pixels[pixelsId];
+
+       white = (uint8_t) aColor;
+       blue = (uint8_t) aColor >> 8;
+       green = (uint8_t) aColor >> 16;
+       red = (uint8_t) aColor >> 24;
 
        p[WHITE_LED_OFFSET] = white;
        p[BLUE_LED_OFFSET] = blue;
@@ -98,8 +95,64 @@ void setPixelColor(uint16_t n, uint32_t currentColor) {
    }
 }
 
+// Turn off all colors on LED strip
+void clearPixels(void) {
+    memset(pixels, 0, numBytes);
+}
 
-//TODO: Write a function for writing to an LED, setting a specific hue color, and reading an LED location
+// Get the clumped 32-bit RGBW color value at led n
+uint32_t getColor(uint16_t n) {
+    if (n >= ledCount) {
+        return 0;
+    }
+    uint32_t color = 0;
+    uint16_t pixelsId = n * NUM_OF_COLORS;
+    uint8_t *p = &pixels[pixelsId];
+
+    color = color | (p[RED_LED_OFFSET] << 24);
+    color = color | (p[BLUE_LED_OFFSET] << 16);
+    color = color | (p[GREEN_LED_OFFSET] << 8);
+    color = color | p[WHITE_LED_OFFSET];
+
+    return color;
+}
+
+// Helper Function for color retrieval at led n
+uint8_t getSpecificColor(uint16_t n, uint8_t offset) {
+    if (n >= ledCount) {
+        return 0;
+    }
+    uint16_t pixelsId = n * NUM_OF_COLORS;
+    uint8_t *p = &pixels[pixelsId];
+
+    return (uint8_t) p[offset];
+}
+
+// Get the white color at led n in hex
+uint8_t getWhiteColor(uint16_t n) {
+    return getSpecificColor(n, WHITE_LED_OFFSET);
+}
+
+// Get the blue color at led n in hex
+uint8_t getBlueColor(uint16_t n) {
+    return getSpecificColor(n, BLUE_LED_OFFSET);
+}
+
+// Get the green color at led n in hex
+uint8_t getGreenColor(uint16_t n) {
+    return getSpecificColor(n, GREEN_LED_OFFSET);
+}
+
+// Get the red color at led n in hex
+uint8_t getRedColor(uint16_t n) {
+    return getSpecificColor(n, RED_LED_OFFSET);
+}
+
+//TODO (REBECCA): Write the Following Functions for Capacitor:
+/*
+ * (1) function to read value on the data bus
+ * (2) interrupts to change the LED value
+ */
 int main(void) {
     uint8_t i, timer;
 
