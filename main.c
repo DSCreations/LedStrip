@@ -24,17 +24,16 @@
 #define NUM_OF_COLORS 4
 
 // Number of LEDs using on 1 meter 60-LED strip
-#define LED_COUNT 60
+#define LED_COUNT 12
 
 // Color data. Order is WHITE,GREEN,RED,BLUE; WHITE,GREEN,RED,BLUE;...
-uint16_t colorDataLen, numBytes;
-uint8_t *pixels; // Convert each bit of 32-bit RGBW color to 4 8-bit instructions.
+uint16_t colorDataLen;
+uint8_t *pixels; // Convert each bit of 32-bit RGBW color
 
 void setup()
 {
     colorDataLen = LED_COUNT + 1;
-    numBytes = colorDataLen * NUM_OF_COLORS;
-    pixels = (uint8_t*) calloc( numBytes, sizeof(uint8_t) ); // bytes separated by WRGB of each LED
+    pixels = (uint8_t*) calloc(colorDataLen, sizeof(uint32_t)); // WRGB of each LED
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
@@ -56,51 +55,30 @@ void setup()
 
     // Initialize each LED's color values to zero, and all the bytes of each color to zero
     // Order of Bytes is W-G-R-B; W-G-R-B; etc
-    uint16_t LED_COUNTer, byteCounter, pixelsId;
-    for(LED_COUNTer = 0; LED_COUNTer < colorDataLen; LED_COUNTer++) {
-        for(byteCounter = 0; byteCounter < NUM_OF_COLORS; byteCounter++) {
-            pixelsId = LED_COUNTer * NUM_OF_COLORS + byteCounter;
-            pixels[pixelsId] = 0x0;
-        }
+    uint16_t ledCounter;
+    for(ledCounter = 0; ledCounter < colorDataLen; ledCounter++) {
+        pixels[ledCounter] = 0x0000;
     }
 }
 
 // Given a red, green, blue, and white color value, set the pixels at led n to the specified colors
 void setPixelRGBWColor(uint16_t n, uint8_t red, uint8_t green, uint8_t blue, uint8_t white) {
     if(n < LED_COUNT) {
-        uint16_t pixelsId = n * NUM_OF_COLORS;
-        uint8_t *p = &pixels[pixelsId];
-
-        p[WHITE_LED_OFFSET] = white;
-        p[BLUE_LED_OFFSET] = blue;
-        p[GREEN_LED_OFFSET] = green;
-        p[RED_LED_OFFSET] = red;
+        uint32_t aColor = ((red << 24) | (green << 16) | (blue << 8) | white);
+        pixels[n] = aColor;
     }
 }
 
 // Given a RGBW aColor, set the pixels at led n to the specified colors
 void setPixelColor(uint16_t n, uint32_t aColor) {
     if(n < LED_COUNT) {
-       uint8_t white, blue, green, red;
-
-       uint16_t pixelsId = n * NUM_OF_COLORS;
-       uint8_t *p = &pixels[pixelsId];
-
-       white = (uint8_t) aColor;
-       blue = (uint8_t) aColor >> 8;
-       green = (uint8_t) aColor >> 16;
-       red = (uint8_t) aColor >> 24;
-
-       p[WHITE_LED_OFFSET] = white;
-       p[BLUE_LED_OFFSET] = blue;
-       p[GREEN_LED_OFFSET] = green;
-       p[RED_LED_OFFSET] = red;
+       pixels[n] = aColor;
    }
 }
 
 // Turn off all colors on LED strip
 void clearPixels(void) {
-    memset(pixels, 0, numBytes);
+    memset(pixels, 0, colorDataLen);
 }
 
 // Get the clumped 32-bit RGBW color value at led n
@@ -108,16 +86,8 @@ uint32_t getColor(uint16_t n) {
     if (n >= LED_COUNT) {
         return 0;
     }
-    uint32_t color = 0;
-    uint16_t pixelsId = n * NUM_OF_COLORS;
-    uint8_t *p = &pixels[pixelsId];
-
-    color = color | (p[RED_LED_OFFSET] << 24);
-    color = color | (p[BLUE_LED_OFFSET] << 16);
-    color = color | (p[GREEN_LED_OFFSET] << 8);
-    color = color | p[WHITE_LED_OFFSET];
-
-    return color;
+    uint32_t aColor = pixels[n];
+    return aColor;
 }
 
 // Helper Function for color retrieval at led n
@@ -125,10 +95,10 @@ uint8_t getSpecificColor(uint16_t n, uint8_t offset) {
     if (n >= LED_COUNT) {
         return 0;
     }
-    uint16_t pixelsId = n * NUM_OF_COLORS;
-    uint8_t *p = &pixels[pixelsId];
+    uint32_t mask = 0xF << (8 * offset);
+    uint8_t aColor = (uint8_t) ((pixels[n] & mask) >> (8 * offset));
 
-    return (uint8_t) p[offset];
+    return aColor;
 }
 
 // Get the white color at led n in hex
@@ -164,9 +134,9 @@ void showLEDStrip() {
 
     // Cycles through Pixels and sets color values on LED Strip
     uint16_t pixelIndex;
-    for (pixelIndex = 0; pixelIndex < numBytes; pixelIndex++) {
-        uint8_t aPixel = pixels[pixelIndex];
-        SSIDataPut(SSI0_BASE, aPixel);
+    for (pixelIndex = 0; pixelIndex < colorDataLen; pixelIndex++) {
+        uint32_t aLED = pixels[pixelIndex];
+        SSIDataPut(SSI0_BASE, aLED);
         while(SSIBusy(SSI0_BASE)){}
     }
 
@@ -174,18 +144,34 @@ void showLEDStrip() {
 }
 
 int main(void) {
-
+    uint16_t i = 0;
     setup();
     //setPixelRGBWColor(0, 255, 255, 255, 255);
     //setPixelRGBWColor(1, 0, 0, 255, 0);
     //setPixelRGBWColor(6, 0, 255, 0, 0);
     //setPixelRGBWColor(3, 0, 0, 0, 0);
    // clearPixels();
-    setPixelColor(10, 0xFFFF);
+    //setPixelColor(10, 0xFFFF);
     //setPixelColor(2, 0x0F00);
     while(1)
     {
+      switch(i) {
+        case WHITE_LED_OFFSET:
+            setPixelColor(1, 0x000F);
+            break;
+        case BLUE_LED_OFFSET:
+            setPixelColor(1, 0x00F0);
+            break;
+        case GREEN_LED_OFFSET:
+            setPixelColor(1, 0x0F00);
+            break;
+        case RED_LED_OFFSET:
+            setPixelColor(1, 0xF000);
+            i = 0;
+            break;
+      }
       showLEDStrip();
       SysCtlDelay(WAIT_TIME);
+      i++;
     }
 }
