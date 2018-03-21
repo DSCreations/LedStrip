@@ -157,6 +157,13 @@ int main(void) {
     uint8_t i, timer;
 
     setup();
+    //setPixelRGBWColor(0, 255, 255, 255, 255);
+    //setPixelRGBWColor(1, 0, 0, 255, 0);
+    //setPixelRGBWColor(6, 0, 255, 0, 0);
+    //setPixelRGBWColor(3, 0, 0, 0, 0);
+    clearPixels();
+    //setPixelColor(1, 0xF000);
+    //setPixelColor(2, 0x0F00);
     while(1)
     {
       // Wait until SSI0_BASE is ready to send bytes
@@ -173,6 +180,5 @@ int main(void) {
       // WS2812 requires a 50us pause between frames to latch the color data.
       // delay(50) is 50 milliseconds, plenty of time.
       for (timer = 0; timer < 5; timer++){}
-
     }
 }
